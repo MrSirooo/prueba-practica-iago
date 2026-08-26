@@ -480,6 +480,44 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiDailyMenuDailyMenu extends Struct.CollectionTypeSchema {
+  collectionName: 'daily_menus';
+  info: {
+    displayName: 'dailyMenu';
+    pluralName: 'daily-menus';
+    singularName: 'daily-menu';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    day: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    dessert: Schema.Attribute.Relation<'oneToOne', 'api::dish.dish'> &
+      Schema.Attribute.Required;
+    first: Schema.Attribute.Relation<'oneToOne', 'api::dish.dish'> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::daily-menu.daily-menu'
+    > &
+      Schema.Attribute.Private;
+    price: Schema.Attribute.Decimal;
+    publishedAt: Schema.Attribute.DateTime;
+    second: Schema.Attribute.Relation<'oneToOne', 'api::dish.dish'> &
+      Schema.Attribute.Required;
+    sumPrice: Schema.Attribute.Decimal;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiDishDish extends Struct.CollectionTypeSchema {
   collectionName: 'dishes';
   info: {
@@ -1024,6 +1062,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::daily-menu.daily-menu': ApiDailyMenuDailyMenu;
       'api::dish.dish': ApiDishDish;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
