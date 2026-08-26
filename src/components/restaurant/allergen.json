@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_restaurant_allergens",
+  "info": {
+    "displayName": "allergen"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "config": {}
+}
