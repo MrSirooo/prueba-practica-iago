@@ -6,6 +6,8 @@ export interface RestaurantAllergen extends Struct.ComponentSchema {
     displayName: 'allergen';
   };
   attributes: {
+    description: Schema.Attribute.Text;
+    icon: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
     name: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
