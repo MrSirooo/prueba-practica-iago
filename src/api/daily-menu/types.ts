@@ -1,10 +1,12 @@
 export interface DishData {
+  id: number;
   documentId: string;
   name: string;
   price?: number | null;
 }
 
 export interface DailyMenuData {
+  id: number;
   documentId: string;
   day: string;
   first?: DishData | null;
