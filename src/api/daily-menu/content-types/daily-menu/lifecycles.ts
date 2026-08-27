@@ -1,5 +1,5 @@
 import { errors } from "@strapi/utils";
-import type { DailyMenuData } from "../../types";
+import type { DishData, DailyMenuData } from "../../types";
 
 const { ApplicationError } = errors;
 
@@ -16,38 +16,44 @@ interface DailyMenuChanges {
   first?: RelationChange;
   second?: RelationChange;
   dessert?: RelationChange;
+  price?: number | null;
+  sumPrice?: number | null;
 }
 
-const getRelationIds = (relation?: RelationChange): number[] => {
-  if (relation?.connect) {
-    return relation.connect.map((item) => item.id);
+const getDishId = (relation: any): number | null => {
+  if (relation?.connect?.length) {
+    return relation.connect[0].id;
   }
 
-  if (relation?.set) {
-    return relation.set.map((item) => item.id);
+  if (relation?.set?.length) {
+    return relation.set[0].id;
   }
 
-  return [];
+  return null;
 };
 
 const validateDifferentDishes = (
-  firstId: string | undefined,
-  secondId: string | undefined,
-  dessertId: string | undefined,
+  first: DishData | null,
+  second: DishData | null,
+  dessert: DishData | null,
 ) => {
-  if (firstId && firstId === secondId) {
+  if (!first || !second || !dessert) {
+    throw new ApplicationError("First, second and dessert are required.");
+  }
+
+  if (first?.documentId === second?.documentId) {
     throw new ApplicationError(
       "The first and second dishes must be different.",
     );
   }
 
-  if (firstId && firstId === dessertId) {
+  if (first?.documentId === dessert?.documentId) {
     throw new ApplicationError(
       "The first and dessert dishes must be different.",
     );
   }
 
-  if (secondId && secondId === dessertId) {
+  if (second?.documentId === dessert?.documentId) {
     throw new ApplicationError(
       "The second and dessert dishes must be different.",
     );
@@ -60,32 +66,26 @@ export default {
       data: DailyMenuChanges;
     };
 
-    const firstIds = getRelationIds(data.first);
-    const secondIds = getRelationIds(data.second);
-    const dessertIds = getRelationIds(data.dessert);
+    const firstId = getDishId(data.first);
+    const secondId = getDishId(data.second);
+    const dessertId = getDishId(data.dessert);
 
-    const dishIds = [...firstIds, ...secondIds, ...dessertIds];
+    if (!firstId || !secondId || !dessertId) {
+      throw new ApplicationError("First, second and dessert are required.");
+    }
 
-    const dishes = await strapi.documents("api::dish.dish").findMany({
-      filters: {
-        id: {
-          $in: dishIds,
-        },
-      },
-    });
+    const { first, second, dessert } = await strapi
+      .service("api::daily-menu.find-all-dishes")
+      .findAllDishes(firstId, secondId, dessertId);
 
-    const getDocumentId = (id: number) =>
-      dishes.find((dish) => dish.id === id)?.documentId;
+    validateDifferentDishes(first, second, dessert);
 
-    const firstDocumentId = getDocumentId(firstIds[0]);
-    const secondDocumentId = getDocumentId(secondIds[0]);
-    const dessertDocumentId = getDocumentId(dessertIds[0]);
+    const { sumPrice, price } = await strapi
+      .service("api::daily-menu.menu-service")
+      .calculateMenuPrice(first, second, dessert);
 
-    validateDifferentDishes(
-      firstDocumentId,
-      secondDocumentId,
-      dessertDocumentId,
-    );
+    data.sumPrice = sumPrice;
+    data.price = price;
   },
 
   async beforeUpdate(event: any) {
@@ -110,45 +110,27 @@ export default {
 
     const changes = params.data as DailyMenuChanges;
 
-    let firstDocumentId = currentMenu.first?.documentId;
-    let secondDocumentId = currentMenu.second?.documentId;
-    let dessertDocumentId = currentMenu.dessert?.documentId;
+    const firstId = getDishId(changes.first) ?? currentMenu.first?.id ?? null;
+    const secondId =
+      getDishId(changes.second) ?? currentMenu.second?.id ?? null;
+    const dessertId =
+      getDishId(changes.dessert) ?? currentMenu.dessert?.id ?? null;
 
-    const firstIds = getRelationIds(changes.first);
-    const secondIds = getRelationIds(changes.second);
-    const dessertIds = getRelationIds(changes.dessert);
-
-    const dishIds = [...firstIds, ...secondIds, ...dessertIds];
-
-    if (dishIds.length > 0) {
-      const dishes = await strapi.documents("api::dish.dish").findMany({
-        filters: {
-          id: {
-            $in: dishIds,
-          },
-        },
-      });
-
-      const getDocumentId = (id: number) =>
-        dishes.find((dish) => dish.id === id)?.documentId;
-
-      if (firstIds.length > 0) {
-        firstDocumentId = getDocumentId(firstIds[0]);
-      }
-
-      if (secondIds.length > 0) {
-        secondDocumentId = getDocumentId(secondIds[0]);
-      }
-
-      if (dessertIds.length > 0) {
-        dessertDocumentId = getDocumentId(dessertIds[0]);
-      }
+    if (!firstId || !secondId || !dessertId) {
+      throw new ApplicationError("First, second and dessert are required.");
     }
 
-    validateDifferentDishes(
-      firstDocumentId,
-      secondDocumentId,
-      dessertDocumentId,
-    );
+    const { first, second, dessert } = await strapi
+      .service("api::daily-menu.find-all-dishes")
+      .findAllDishes(firstId, secondId, dessertId);
+
+    validateDifferentDishes(first, second, dessert);
+
+    const { sumPrice, price } = await strapi
+      .service("api::daily-menu.menu-service")
+      .calculateMenuPrice(first, second, dessert);
+
+    params.data.sumPrice = sumPrice;
+    params.data.price = price;
   },
 };
