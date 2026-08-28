@@ -3,7 +3,7 @@ export default {
     {
       method: "GET",
       path: "/menus",
-      handler: "daily-menu.find",
+      handler: "daily-menu.findMenus",
       config: {
         auth: false,
       },
